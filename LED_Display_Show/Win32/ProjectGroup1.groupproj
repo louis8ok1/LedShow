@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{D7D19576-666E-45AE-8448-3DAD8DE79BCF}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="..\LedDisplay.cbproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\..\LED_Display_TCCU\LED_Display.cbproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="LedDisplay">
+        <MSBuild Projects="..\LedDisplay.cbproj"/>
+    </Target>
+    <Target Name="LedDisplay:Clean">
+        <MSBuild Projects="..\LedDisplay.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="LedDisplay:Make">
+        <MSBuild Projects="..\LedDisplay.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="LED_Display">
+        <MSBuild Projects="..\..\LED_Display_TCCU\LED_Display.cbproj"/>
+    </Target>
+    <Target Name="LED_Display:Clean">
+        <MSBuild Projects="..\..\LED_Display_TCCU\LED_Display.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="LED_Display:Make">
+        <MSBuild Projects="..\..\LED_Display_TCCU\LED_Display.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="LedDisplay;LED_Display"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="LedDisplay:Clean;LED_Display:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="LedDisplay:Make;LED_Display:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
