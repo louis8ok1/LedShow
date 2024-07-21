@@ -1,127 +1,63 @@
-﻿//---------------------------------------------------------------------------
-
-#include <vcl.h>
+﻿#include <vcl.h>
 #pragma hdrstop
-
-#include "LedDisplayform.h"
-//---------------------------------------------------------------------------
+#include "LEDDisplayForm.h"
+#include <System.IOUtils.hpp>
 #pragma package(smart_init)
 #pragma resource "*.dfm"
+
 TLEDDisplay_Form *LEDDisplay_Form;
-//---------------------------------------------------------------------------
-
-
-__fastcall TLEDDisplay_Form::TLEDDisplay_Form(TComponent* Owner)
-    : TForm(Owner), ScrollOffset(0)
+ __fastcall TLEDDisplay_Form::TLEDDisplay_Form(TComponent* Owner)
+	: TForm(Owner)
 {
-    BufferBitmap = std::make_unique<Graphics::TBitmap>();
 }
+
 //---------------------------------------------------------------------------
+
 void __fastcall TLEDDisplay_Form::FormCreate(TObject *Sender)
 {
-	IdTCPServer->DefaultPort = 8080;
+    IdTCPServer->DefaultPort = 8080;
     IdTCPServer->Active = true;
+    this->BorderStyle = bsNone;
+    this->Top = 0;
+    this->Left = 0;
+	this->Width = 384;
+	this->Height = 96;
 
-    Timer1->Interval = 50; // 50毫秒更新一次
-    Timer1->Enabled = true;
-
-    BufferBitmap->Width = PaintBox1->Width;
-    BufferBitmap->Height = PaintBox1->Height;
-
-    // 初始化顯示文字
-    DisplayText = "歡迎使用 LED 顯示屏";
-	UpdateBufferBitmap();
+	PaintBox->Color = clBlack;
 }
 //---------------------------------------------------------------------------
-void __fastcall TLEDDisplay_Form::PaintBox1Paint(TObject *Sender)
-{
-	if (BufferBitmap)
-    {
-		PaintBox1->Canvas->Draw(0, 0, BufferBitmap.get());
-	}
-}
-//---------------------------------------------------------------------------
-void TLEDDisplay_Form::UpdateDisplay(const String &text)
-{
-	DisplayText = text;
-    ScrollOffset = PaintBox1->Width; // 從右邊開始
-	 UpdateBufferBitmap();
-}
-void TLEDDisplay_Form::UpdateBufferBitmap()
-{
-    ShowMessage("Updating buffer: " + DisplayText);
-if (!BufferBitmap)
-        return;
 
-    TCanvas *canvas = BufferBitmap->Canvas;
-    TRect clientRect = Rect(0, 0, BufferBitmap->Width, BufferBitmap->Height);
-
-    // 設置背景
-    canvas->Brush->Color = clBlack;
-    canvas->FillRect(clientRect);
-
-    // 設置字體
-    canvas->Font->Name = "Arial";
-    canvas->Font->Size = 24;
-    canvas->Font->Color = clRed;
-
-    // 繪製文字
-    canvas->TextOut(ScrollOffset, (clientRect.Height() - canvas->TextHeight(DisplayText)) / 2, DisplayText);
-
-    // 繪製 LED 邊框效果
-    canvas->Pen->Color = clGray;
-    canvas->Pen->Width = 2;
-    canvas->Rectangle(clientRect);
-
-    // 強制重繪
-	PaintBox1->Invalidate();
-}
-//----------------------------------------------------------------------
 void __fastcall TLEDDisplay_Form::IdTCPServerExecute(TIdContext *AContext)
 {
-	try
+   try
 	{
-		String data = AContext->Connection->IOHandler->ReadLn(IndyTextEncoding_UTF8());
-		TThread::Queue(NULL, [this, data]() {
-			UpdateDisplay(data);
-		});
+        String message = AContext->Connection->IOHandler->ReadLn(IndyTextEncoding_UTF8());
+        TThread::Synchronize(nullptr, [this, message](){ DisplayMessage(message); });
     }
     catch (Exception &e)
     {
-        ShowMessage("接收數據錯誤：" + e.Message);
+        // Handle exceptions
 	}
 }
 //---------------------------------------------------------------------------
-void TLEDDisplay_Form::SyncUpdateDisplay(TObject *Sender)
+ void __fastcall TLEDDisplay_Form::DisplayMessage(String message)
 {
-    UpdateDisplay(ReceivedData);
+    ReceivedData = message;
+    PaintBox->Repaint();
 }
-void __fastcall TLEDDisplay_Form::Timer1Timer(TObject *Sender)
+
+void __fastcall TLEDDisplay_Form::FormPaint(TObject *Sender)
 {
- ScrollOffset -= 5; // 每次移動5個像素
+	  // 设置背景色
+    TRect rect = PaintBox->ClientRect;
+    PaintBox->Canvas->Brush->Color = clBlack;
+    PaintBox->Canvas->FillRect(rect);
 
-    TSize textSize = BufferBitmap->Canvas->TextExtent(DisplayText);
-	if (ScrollOffset < -textSize.cx)
-	{
-        ScrollOffset = PaintBox1->Width;
-	}
+    // 设置字体
+    PaintBox->Canvas->Font->Name = "Arial";  // 选择适合的字体
+    PaintBox->Canvas->Font->Size = 24;       // 放大字体
+    PaintBox->Canvas->Font->Color = clLime;  // 设置字体颜色为绿色，模拟LED效果
 
-	UpdateBufferBitmap();
+    // 绘制文本
+	PaintBox->Canvas->TextOut(10, 10, ReceivedData);
 }
-//---------------------------------------------------------------------------
-
-void __fastcall TLEDDisplay_Form::FormClose(TObject *Sender, TCloseAction &Action)
-
-{
-      if (IdTCPServer->Active)
-    {
-        IdTCPServer->Active = false;
-    }
-    if (Timer1->Enabled)
-    {
-        Timer1->Enabled = false;
-    }
-	Sleep(100);
-}
-//---------------------------------------------------------------------------
-
