@@ -9,7 +9,7 @@
 TLEDDisplay_Form *LEDDisplay_Form;
 
 __fastcall TLEDDisplay_Form::TLEDDisplay_Form(TComponent* Owner)
-	: TForm(Owner)
+	: TForm(Owner) , CurrentFont("Arial")
 {
 	 // 启用双缓冲
     SetWindowLong(Handle, GWL_EXSTYLE, GetWindowLong(Handle, GWL_EXSTYLE) | WS_EX_COMPOSITED);
@@ -51,15 +51,33 @@ void __fastcall TLEDDisplay_Form::IdTCPServerExecute(TIdContext *AContext)
 {
     try
     {
-        // 從TCP連接中讀取消息
         String message = AContext->Connection->IOHandler->ReadLn(IndyTextEncoding_UTF8());
-        // 使用同步線程來更新UI
-        TThread::Synchronize(nullptr, [this, message](){ DisplayMessage(message); });
+
+        // 分离消息、速度和字体
+        int separatorIndex1 = message.Pos("|");
+        if (separatorIndex1 > 0) {
+            int separatorIndex2 = message.SubString(separatorIndex1 + 1, message.Length() - separatorIndex1).Pos("|");
+            if (separatorIndex2 > 0) {
+                ReceivedData = message.SubString(1, separatorIndex1 - 1);
+                String speedStr = message.SubString(separatorIndex1 + 1, separatorIndex2 - 1);
+                String fontStr = message.SubString(separatorIndex1 + separatorIndex2 + 1, message.Length() - (separatorIndex1 + separatorIndex2));
+
+				// 设置移动速度
+                int speed = StrToIntDef(speedStr, 5); // 默认为5
+                Timer->Interval = 200 - (speed * 20); // 根据速度调整计时器间隔
+
+                // 设置字体
+                CurrentFont = fontStr;
+
+                TextPosition = PaintBox->Width; // 重置文本位置到右边
+                PaintBox->Repaint();
+            }
+        }
     }
-	catch (Exception &e)
-	{
-        // 處理例外
-    }
+    catch (Exception &e)
+    {
+        // 处理异常
+	}
 }
 //---------------------------------------------------------------------------
 
@@ -86,34 +104,21 @@ void __fastcall TLEDDisplay_Form::TimerTimer(TObject *Sender)
 
 void __fastcall TLEDDisplay_Form::PaintBoxPaint(TObject *Sender)
 {
-	// 禁用双缓冲，手动控制双缓冲绘制
-    TCanvas* canvas = PaintBox->Canvas;
-    TBitmap* bufferBitmap = new TBitmap();
-    try
-    {
-        bufferBitmap->Width = PaintBox->Width;
-        bufferBitmap->Height = PaintBox->Height;
+	 // 在内存位图中绘制
+    TRect rect(0, 0, Buffer->Width, Buffer->Height);
 
-        // 在内存位图中绘制
-        TRect rect(0, 0, bufferBitmap->Width, bufferBitmap->Height);
-        bufferBitmap->Canvas->Brush->Color = clBlack;
-        bufferBitmap->Canvas->FillRect(rect);
+    Buffer->Canvas->Brush->Color = clBlack;
+    Buffer->Canvas->FillRect(rect);
 
-        // 设置字体属性
-        bufferBitmap->Canvas->Font->Name = "Arial";
-        bufferBitmap->Canvas->Font->Size = 24;
-        bufferBitmap->Canvas->Font->Color = clLime;
+    // 设置字体属性
+    Buffer->Canvas->Font->Name = CurrentFont.IsEmpty() ? "Arial" : CurrentFont;
+    Buffer->Canvas->Font->Size = 24;
+    Buffer->Canvas->Font->Color = clLime;
 
-        // 绘制文本
-        bufferBitmap->Canvas->TextOut(TextPosition, 10, ReceivedData);
+    Buffer->Canvas->TextOut(TextPosition, 10, ReceivedData);
 
-        // 将内存位图绘制到PaintBox
-        canvas->Draw(0, 0, bufferBitmap);
-    }
-    __finally
-    {
-        delete bufferBitmap;
-	}
+    // 将内存位图绘制到PaintBox
+	PaintBox->Canvas->Draw(0, 0, Buffer);
 }
 //---------------------------------------------------------------------------
 

@@ -1,0 +1,13 @@
+﻿[IdTCPServer]
+Coordinates=0,0,76,33
+
+[Timer]
+Coordinates=108,1,42,33
+
+[PaintBox]
+Coordinates=10,10,58,33
+Visible=True
+
+[]
+Coordinates=193,1,91,36
+

@@ -35,6 +35,7 @@ private:	// User declarations
 	String ReceivedData;
 	int TextPosition;
 	TBitmap *Buffer;
+	String CurrentFont; // 当前选择的字体
 	void __fastcall DisplayMessage(String message);
 
 
