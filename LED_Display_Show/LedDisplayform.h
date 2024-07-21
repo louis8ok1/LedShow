@@ -19,21 +19,29 @@ class TLEDDisplay_Form : public TForm
 __published:	// IDE-managed Components  // 使用 TLEDPanel
 	TIdTCPServer *IdTCPServer;
 	TPaintBox *PaintBox;
+	TTimer *Timer;
 
 
 
 
-	void __fastcall FormPaint(TObject *Sender);
+
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall IdTCPServerExecute(TIdContext *AContext);
+	void __fastcall TimerTimer(TObject *Sender);
+	void __fastcall PaintBoxPaint(TObject *Sender);
 
 private:	// User declarations
 
 	String ReceivedData;
+	int TextPosition;
+	TBitmap *Buffer;
+	void __fastcall DisplayMessage(String message);
+
 
 public:		// User declarations
 	__fastcall TLEDDisplay_Form(TComponent* Owner);
-	void __fastcall DisplayMessage(String message);
+	__fastcall ~TLEDDisplay_Form();
+
 };
 //---------------------------------------------------------------------------
 extern PACKAGE TLEDDisplay_Form *LEDDisplay_Form;
